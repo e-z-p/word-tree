@@ -63,14 +63,13 @@
   (vec (concat (subvec coll 0 pos) (subvec coll (inc pos)))))
 
 (defn into-tree
-  "Adds string, S, to suffix tree, T."
+  "Adds string, s, to suffix tree, t."
   ([s] (suffix-tree s))
   ([s t]
    (let [{text :text, branches :branches} t
          fork (get-fork text s)
          [prefix suffix-a] (cut-at text fork)
          suffix-b (get-suffix s fork)]
-     (println "tree: " t)
      (if (empty? suffix-b)
        t
        (let [[i n] (get-branch branches (first suffix-b))]
@@ -84,15 +83,38 @@
                                        (vec-remove (vec branches) i))))))))))
 
 (defn gen-suffix-tree
-  "Creates a suffix tree from a body of text."
-  [text]
-  (let [sentences (sentence-split text)]
-    (reduce into-tree sentences)))
+  "Generates a suffix tree from a body of text."
+  ([phrases]
+   (loop [phrases phrases
+          head (suffix-tree)]
+     (if (empty? phrases)
+       head
+       (recur (rest phrases) (into-tree (first phrases) head)))))
+  ([text search-term]
+   ;; get substrings from index of search-phrase to end of text
+   ;; pass substrings starting with search-phrase to gen-suffix-tree
+   (let [low-case-text (str/lower-case text)]
+     (loop [phrases '()
+            idx (.indexOf low-case-text search-term)]
+       (if (= idx -1)
+         (gen-suffix-tree phrases)
+         (recur (conj phrases (subs text idx))
+                (.indexOf low-case-text search-term (inc idx))))))))
+
+; 1. split text into sentences
+; 2. filter sentences that contain the search-term
+; 3. for each sentence, chop off everything before the search-term
+; 4. build tree
+(defn gen-tree
+  "Builds a word-tree out of body of text and a search-term."
+  [text search-term]
+  (let [phrases (map #(subs % (.indexOf % search-term)) (filter #(clojure.string/includes? % search-term) (sentence-split text)))]
+    (reduce #(into-tree %2 %1) (suffix-tree search-term) phrases)))
 
 (defn render-suffix-tree
   "Renders a suffix tree as html."
   [t]
   (let [{text :text, branches :branches} t]
-    ^{:key (gensym)}
-    [:ul text
-     (map render-suffix-tree branches)]))
+    (if (= " " text)
+      (map render-suffix-tree branches)
+      ^{:key (gensym)} [:ul text (map render-suffix-tree branches)])))

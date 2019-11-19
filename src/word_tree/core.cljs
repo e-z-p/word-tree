@@ -15,7 +15,8 @@
         t (s-tree/into-tree "You are something else entirely.")
         t2 (s-tree/into-tree "You are the best." t)
         t3 (s-tree/into-tree "You are the dumbest person." t2)
-        t4 (s-tree/into-tree "You are something." t3)]
+        t4 (s-tree/into-tree "You are something." t3)
+        t5 (s-tree/gen-tree text "with")]
     [:div
      [:ul p
       [:li s1]
@@ -24,7 +25,7 @@
      (s-tree/render-suffix-tree t2)
      (s-tree/render-suffix-tree t3)
      (s-tree/render-suffix-tree t4)
-     ]))
+     [:div {:style {:color "red"}} (s-tree/render-suffix-tree t5)]]))
 
 ;; -------------------------
 ;; Initialize app
