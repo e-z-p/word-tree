@@ -16,9 +16,10 @@
 
 (defn home-page []
   (let [search-term (r/atom "with")]
-    [:div
-     [:p {:style {:font-weight "bold"}} "Search term: " [atom-input search-term]]
-     (suff/render-tree (suff/gen-tree text @search-term))]))
+    (fn []
+      [:div
+       [:p [:strong "Search term: "] [atom-input search-term]]
+       (suff/render-tree (suff/gen-tree text @search-term))])))
 
 ;; -------------------------
 ;; Initialize app
