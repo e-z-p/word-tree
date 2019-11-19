@@ -105,7 +105,7 @@
 ; 2. filter sentences that contain the search-term
 ; 3. for each sentence, chop off everything before the search-term
 ; 4. build tree
-(defn gen-tree
+(defn gen-tree                                              ;; Filter out regex match whole word instead of substring, something like #"\b{search-term}\b"
   "Builds a word-tree out of body of text and a search-term."
   [text search-term]
   (let [phrases (map #(subs % (.indexOf % search-term)) (filter #(clojure.string/includes? % search-term) (sentence-split text)))]
