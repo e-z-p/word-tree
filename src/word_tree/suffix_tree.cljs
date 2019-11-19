@@ -91,8 +91,6 @@
        head
        (recur (rest phrases) (into-tree (first phrases) head)))))
   ([text search-term]
-   ;; get substrings from index of search-phrase to end of text
-   ;; pass substrings starting with search-phrase to gen-suffix-tree
    (let [low-case-text (str/lower-case text)]
      (loop [phrases '()
             idx (.indexOf low-case-text search-term)]
@@ -105,10 +103,12 @@
 ; 2. filter sentences that contain the search-term
 ; 3. for each sentence, chop off everything before the search-term
 ; 4. build tree
-(defn gen-tree                                              ;; Filter out regex match whole word instead of substring, something like #"\b{search-term}\b"
+; pattern to match whole word (def patter (re-pattern (str "\\b" search-term "\\b")))
+(defn gen-tree                                              ;; Filter out regex match whole word instead of substring, something like #"\b(re-pattern search-term)\b"
   "Builds a word-tree out of body of text and a search-term."
   [text search-term]
-  (let [phrases (map #(subs % (.indexOf % search-term)) (filter #(clojure.string/includes? % search-term) (sentence-split text)))]
+  (let [patter (re-pattern (str "(?i)\\b" search-term "\\b")) ; insensitive match of whole words
+        phrases (map #(subs % (.indexOf % search-term)) (remove #(nil? (re-find patter %)) (sentence-split text)))]
     (reduce #(into-tree %2 %1) (suffix-tree search-term) phrases)))
 
 (defn render-tree
