@@ -111,10 +111,10 @@
   (let [phrases (map #(subs % (.indexOf % search-term)) (filter #(clojure.string/includes? % search-term) (sentence-split text)))]
     (reduce #(into-tree %2 %1) (suffix-tree search-term) phrases)))
 
-(defn render-suffix-tree
+(defn render-tree
   "Renders a suffix tree as html."
   [t]
   (let [{text :text, branches :branches} t]
     (if (= " " text)
-      (map render-suffix-tree branches)
-      ^{:key (gensym)} [:ul text (map render-suffix-tree branches)])))
+      (map render-tree branches)
+      ^{:key (gensym)} [:ul text (map render-tree branches)])))
