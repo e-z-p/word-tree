@@ -1,11 +1,17 @@
 (ns word-tree.suffix-tree
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [opennlp.nlp :as nlp]))
 
 (defn sentence-split
   "Splits a body of text on delimiters: ('.'|'!'|'?')"
   [text]
   (map str/trim
        (re-seq #"\(?[^\.\?\!]+[\.!\?]\)?" text)))
+
+(defn tokenize
+  [text]
+  (let [get-sentences (make-sentence-detector "models/en-sent.bin")]
+    (get-sentences text)))
 
 (defn get-fork
   "Returns the index where two strings diverge."
@@ -82,23 +88,6 @@
                                        branches
                                        (vec-remove (vec branches) i))))))))))
 
-(defn gen-suffix-tree
-  "Generates a suffix tree from a body of text."
-  ([phrases]
-   (loop [phrases phrases
-          head (suffix-tree)]
-     (if (empty? phrases)
-       head
-       (recur (rest phrases) (into-tree (first phrases) head)))))
-  ([text search-term]
-   (let [low-case-text (str/lower-case text)]
-     (loop [phrases '()
-            idx (.indexOf low-case-text search-term)]
-       (if (= idx -1)
-         (gen-suffix-tree phrases)
-         (recur (conj phrases (subs text idx))
-                (.indexOf low-case-text search-term (inc idx))))))))
-
 ; 1. split text into sentences
 ; 2. filter sentences that contain the search-term
 ; 3. for each sentence, chop off everything before the search-term
@@ -108,13 +97,16 @@
   "Builds a word-tree out of body of text and a search-term."
   [text search-term]
   (let [patter (re-pattern (str "(?i)\\b" search-term "\\b")) ; insensitive match of whole words
-        phrases (map #(subs % (.indexOf % search-term)) (remove #(nil? (re-find patter %)) (sentence-split text)))]
+        phrases (map #(subs % (.indexOf % search-term)) (remove #(nil? (re-find patter %)) (sentence-split text)))] ; This ignores  multiple occurrences in the same sentence
     (reduce #(into-tree %2 %1) (suffix-tree search-term) phrases)))
+; start at 0
+; find idx of case-insensitive search-word
+; return word-idx upto idx of delimiter followed by whitespace or nil
+; repeat starting at idx+1 of previous search-word
+; THIS WAY YOU DON'T HAVE TO USE REMOVE/FILTER
 
 (defn render-tree
   "Renders a suffix tree as html."
   [t]
   (let [{text :text, branches :branches} t]
-    (if (= " " text)
-      (map render-tree branches)
-      ^{:key (gensym)} [:ul text (map render-tree branches)])))
+    ^{:key (gensym)} [:ul {:class "suffix-tree"} text (map render-tree branches)]))

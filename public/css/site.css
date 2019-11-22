@@ -32,3 +32,8 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+.suffix-tree {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
