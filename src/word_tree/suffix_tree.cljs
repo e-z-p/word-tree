@@ -7,6 +7,8 @@
   (map str/trim
        (re-seq #"\(?[^\.\?\!]+[\.!\?]\)?" text)))           ; In backend use "clojure-opennlp" lib to tokenize text into sentences
 
+; (re-split #"((\b[^\s]+\b)((?<=\.\w).)?)" sentences) splits text into words (needs test)
+
 (defn get-fork
   "Returns the index where two strings diverge."
   [a b]
@@ -85,7 +87,7 @@
 (defn re-each-match-to-eos
   "Get position of regex match."
   [re s]
-  (let [re (js/RegExp. (.-source re) "gi" )]
+  (let [re (js/RegExp. (.-source re) "g" )]
     (loop [res []]
       (if-let [m (.exec re s)]
         (recur (conj res (subs s (.-index m))))
@@ -98,8 +100,9 @@
 
 (defn gen-suffix-tree
   "Generates a suffix tree from a collection of strings."
-  [coll pre]
-  (let [phrases (get-phrases coll pre)]
+  [text pre]
+  (let [sentences (sentence-split text)
+        phrases (get-phrases sentences pre)]
     (reduce #(into-tree %2 %1) (suffix-tree pre) phrases)))
 
 (defn render-tree
