@@ -1,17 +1,11 @@
 (ns word-tree.suffix-tree
-  (:require [clojure.string :as str]
-            [opennlp.nlp :as nlp]))
+  (:require [clojure.string :as str]))
 
 (defn sentence-split
   "Splits a body of text on delimiters: ('.'|'!'|'?')"
   [text]
   (map str/trim
-       (re-seq #"\(?[^\.\?\!]+[\.!\?]\)?" text)))
-
-(defn tokenize
-  [text]
-  (let [get-sentences (make-sentence-detector "models/en-sent.bin")]
-    (get-sentences text)))
+       (re-seq #"\(?[^\.\?\!]+[\.!\?]\)?" text)))           ; In backend use "clojure-opennlp" lib to tokenize text into sentences
 
 (defn get-fork
   "Returns the index where two strings diverge."
@@ -64,7 +58,7 @@
     (remove #(or (nil? %) (is-bare? %)) coll)))
 
 (defn vec-remove
-  "remove elem in coll"
+  "Removes element from vector."
   [coll pos]
   (vec (concat (subvec coll 0 pos) (subvec coll (inc pos)))))
 
@@ -95,15 +89,29 @@
 ; pattern to match whole word (def patter (re-pattern (str "\\b" search-term "\\b")))
 (defn gen-tree                                              ;; Filter out regex match whole word instead of substring, something like #"\b(re-pattern search-term)\b"
   "Builds a word-tree out of body of text and a search-term."
-  [text search-term]
+  [sentences search-term]
   (let [patter (re-pattern (str "(?i)\\b" search-term "\\b")) ; insensitive match of whole words
-        phrases (map #(subs % (.indexOf % search-term)) (remove #(nil? (re-find patter %)) (sentence-split text)))] ; This ignores  multiple occurrences in the same sentence
+        phrases (map #(subs % (.indexOf % search-term)) (remove #(nil? (re-find patter %)) sentences))] ; This ignores  multiple occurrences in the same sentence
     (reduce #(into-tree %2 %1) (suffix-tree search-term) phrases)))
-; start at 0
-; find idx of case-insensitive search-word
-; return word-idx upto idx of delimiter followed by whitespace or nil
-; repeat starting at idx+1 of previous search-word
-; THIS WAY YOU DON'T HAVE TO USE REMOVE/FILTER
+
+(defn re-each-match-to-eos
+  "Get position of regex match."
+  [re s]
+  (let [re (js/RegExp. (.-source re) "gi" )]
+    (loop [res []]
+      (if-let [m (.exec re s)]
+        (recur (conj res (subs s (.-index m))))
+        res))))
+
+(defn get-suffixes
+  [sentences prefix]
+  (let [re (re-pattern (str "\\b" prefix "\\b"))]
+    (mapcat #(re-each-match-to-eos re %) sentences)))
+
+(defn gen-suffix-tree
+  "Generates a suffix tree from a collection of strings."
+  [coll pre]
+  (reduce #(into-tree %2 %1) (suffix-tree pre) (get-suffixes coll pre)))
 
 (defn render-tree
   "Renders a suffix tree as html."
