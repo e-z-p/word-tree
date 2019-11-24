@@ -82,18 +82,6 @@
                                        branches
                                        (vec-remove (vec branches) i))))))))))
 
-; 1. split text into sentences
-; 2. filter sentences that contain the search-term
-; 3. for each sentence, chop off everything before the search-term
-; 4. build tree
-; pattern to match whole word (def patter (re-pattern (str "\\b" search-term "\\b")))
-(defn gen-tree                                              ;; Filter out regex match whole word instead of substring, something like #"\b(re-pattern search-term)\b"
-  "Builds a word-tree out of body of text and a search-term."
-  [sentences search-term]
-  (let [patter (re-pattern (str "(?i)\\b" search-term "\\b")) ; insensitive match of whole words
-        phrases (map #(subs % (.indexOf % search-term)) (remove #(nil? (re-find patter %)) sentences))] ; This ignores  multiple occurrences in the same sentence
-    (reduce #(into-tree %2 %1) (suffix-tree search-term) phrases)))
-
 (defn re-each-match-to-eos
   "Get position of regex match."
   [re s]
@@ -103,15 +91,16 @@
         (recur (conj res (subs s (.-index m))))
         res))))
 
-(defn get-suffixes
+(defn get-phrases
   [sentences prefix]
   (let [re (re-pattern (str "\\b" prefix "\\b"))]
-    (mapcat #(re-each-match-to-eos re %) sentences)))
+    (remove nil? (mapcat #(re-each-match-to-eos re %) sentences))))
 
 (defn gen-suffix-tree
   "Generates a suffix tree from a collection of strings."
   [coll pre]
-  (reduce #(into-tree %2 %1) (suffix-tree pre) (get-suffixes coll pre)))
+  (let [phrases (get-phrases coll pre)]
+    (reduce #(into-tree %2 %1) (suffix-tree pre) phrases)))
 
 (defn render-tree
   "Renders a suffix tree as html."

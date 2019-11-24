@@ -1,7 +1,8 @@
 (ns word-tree.core
-    (:require
-      [reagent.core :as r]
-      [word-tree.suffix-tree :as suff]))
+  (:require
+    [reagent.core :as r]
+    [word-tree.suffix-tree :as sfx]
+    [clojure.string :as str]))
 
 ;; -------------------------
 ;; Views
@@ -33,7 +34,9 @@
       [:div
        [:p [:strong "Search term: "] [atom-input search-term]]
        [:p [:strong "Corpus: "] [atom-textarea corpus]]
-       (suff/render-tree (suff/gen-suffix-tree @corpus @search-term))])))
+       (if (empty? @search-term)
+          [:p (str/join " " @corpus)]
+         (sfx/render-tree (sfx/gen-suffix-tree @corpus @search-term)))])))
 
 ;; -------------------------
 ;; Initialize app
