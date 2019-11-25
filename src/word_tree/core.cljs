@@ -18,12 +18,18 @@
                 "'Nothing is worse than being ugly,' I think, deaf to how silly and vain I sound."
                 "I've been awake since approximately six."
                 "There was a time when I meditated every day that I felt peace; here/now my thoughts are conveyed on a belt cranked to max speed, under pressure from some faceless authority to meet quotas and deadlines."]))
+; TODO:
+; 1. change `sentences` to something less personal
+; 2. merge with `--squash`
+; 3. delete branch locally and remotely
+
 (defn atom-input [value]
   [:input {:type "text"
            :style {:font-size ".75em"}
            :value @value
            :on-change #(reset! value (-> % .-target .-value))}])
-;; drop down word-suggestions as you begin typing or "no word beginning with '<search-term>' exists in this corpus."
+; TODO:
+; drop down suggestions as you begin typing or "no word beginning with '<search-term>' exists in this corpus."
 
 (defn atom-textarea [value]
   [:textarea {:styles {:font-size ".7"}
