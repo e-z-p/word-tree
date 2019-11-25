@@ -7,7 +7,6 @@
   (map str/trim
        (re-seq #"\(?[^\.\?\!]+[\.!\?]\)?" text)))           ; In backend use "clojure-opennlp" lib to tokenize text into sentences
 
-; (re-split #"((\b[^\s]+\b)((?<=\.\w).)?)" sentences) splits text into words (needs test)
 ;       \W+ matches any succession of non-word characters
 
 (defn get-fork
@@ -16,18 +15,12 @@
   (loop [a s1
          b s2
          i 0]
-    (if (or (some empty? [a b])
+    (if (or (or (empty? a) (empty? b))
             (not= (first a) (first b)))
-      i                                                     ;; get len of matchuptolastword of s1[0:i]
+      i                                                     ;; get len of matchuptobeginningoflastword of s1[0:i]
       (recur (rest a)
              (rest b)
              (inc i)))))
-
-; (get-fork "A blue bird lives in my heart." "A blue bird dies.")
-;            012345678901234567890123456789   01234567890123456
-;                      11111111112222222222             1111111
-;
-; ===> 12
 
 (defn get-prefix
   "Gets substring of S from zero up to index I"
@@ -49,31 +42,25 @@
   ([p] {:text p, :branches []})
   ([p b] {:text p, :branches b}))
 
-(defn prune
-  "Removes empty trees from a collection."
-  [coll]
-  (letfn [(is-bare? [t] (every? empty? (vals t)))]
-    (remove #(or (nil? %) (is-bare? %)) coll)))
-
 (defn vec-remove
   "Removes element from vector."
   [coll pos]
-  (vec (concat (subvec coll 0 pos) (subvec coll (inc pos)))))
+  (vec (concat (subvec (vec coll) 0 pos) (subvec (vec coll) (inc pos)))))
 
 (defn first-word
-  "Gets the first word from a string."
+  "Gets substring of s up to end of first word."
   [s]
-  (re-find #"\w+" s))
+  (re-find #"[\W+]*\w+" s))
 
 (defn get-branch
-  "Finds the index of the string whose first char matches the target char."
-  [coll target]
-  (loop [indices-and-first-words (map vector (range 0 (count coll)) (map #(first-word (:text %)) coll))]
-    (let [i&fw (first indices-and-first-words)]
+  "Finds the index of the string whose first word matches the target word."
+  [branches v]
+  (loop [coll branches]
+    (let [b (:text (first coll))]
       (cond
-        (empty? indices-and-first-words) nil
-        (= target (get i&fw 1)) i&fw
-        :else (recur (rest indices-and-first-words))))))
+        (empty? coll) nil
+        (str/starts-with? b v) (- (count branches) (count coll))
+        :else (recur (rest coll))))))
 
 (defn into-tree
   "Adds string, s, to suffix tree, t."
@@ -85,15 +72,12 @@
          suffix-b (get-suffix s fork)]
      (if (empty? suffix-b)
        t
-       (let [[i n] (get-branch branches (first-word suffix-b))]
+       (let [i (get-branch branches (first-word suffix-b))]
          (suffix-tree prefix
-                      (prune (concat [(suffix-tree suffix-a)
-                                      (if-not n
-                                        (suffix-tree suffix-b)
-                                        (into-tree suffix-b n))]
-                                     (if-not n
-                                       branches
-                                       (vec-remove (vec branches) i))))))))))
+                      (concat [(suffix-tree suffix-a)]
+                              (if-not i
+                                [(suffix-tree suffix-b) branches]
+                                [(into-tree suffix-b (get branches i)) (vec-remove branches i)]))))))))
 
 (defn re-each-match-to-eos
   "Get position of regex match."
@@ -114,7 +98,8 @@
   [text pre]
   (let [sentences (sentence-split text)
         phrases (get-phrases sentences pre)]
-    (reduce #(into-tree %2 %1) (suffix-tree pre) phrases)))
+    (reduce (fn [t s] (into-tree s t))
+            (suffix-tree pre) phrases)))
 
 (defn render-tree
   "Renders a suffix tree as html."
