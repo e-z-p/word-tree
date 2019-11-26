@@ -1,5 +1,6 @@
 (ns word-tree.suffix-tree
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [cljs.pprint :as pp]))
 
 (defn sentence-split
   "Splits a body of text on delimiters: ('.'|'!'|'?')"
@@ -73,16 +74,19 @@
      (if (empty? suffix-b)
        t
        (let [i (get-branch branches (first-word suffix-b))]
+         (println "sentence: " s)
+         (println "suffix: " (first-word suffix-b))
+         (println "branches: " branches)
+         (println "path: " i)
          (suffix-tree prefix
-                      (concat [(suffix-tree suffix-a)]
-                              (if-not i
-                                [(suffix-tree suffix-b) branches]
-                                [(into-tree suffix-b (get branches i)) (vec-remove branches i)]))))))))
+                      (remove nil? (flatten [(when suffix-a (suffix-tree suffix-a))
+                                             (if i [(into-tree suffix-b (nth branches i)) (vec-remove branches i)]
+                                                   [(suffix-tree suffix-b) branches])]))))))))
 
 (defn re-each-match-to-eos
   "Get position of regex match."
   [re s]
-  (let [re (js/RegExp. (.-source re) "g" )]
+  (let [re (js/RegExp. (.-source re) "g")]
     (loop [res []]
       (if-let [m (.exec re s)]
         (recur (conj res (subs s (.-index m))))
@@ -98,7 +102,7 @@
   [text pre]
   (let [sentences (sentence-split text)
         phrases (get-phrases sentences pre)]
-    (reduce (fn [t s] (into-tree s t))
+    (reduce (fn [t s] (pp/pprint t) (into-tree s t))
             (suffix-tree pre) phrases)))
 
 (defn render-tree
