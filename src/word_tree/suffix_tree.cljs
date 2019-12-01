@@ -95,9 +95,9 @@
 
 (defn gen-suffix-tree
   "Generates a suffix tree from a collection of strings."
-  [text pre]
+  [text prefix]
   (let [sentences (sentence-split text)
-        phrases (get-phrases sentences pre)]
+        phrases (get-phrases sentences prefix)]
     (reduce #(into-tree %2 %1) (suffix-tree (first phrases)) (rest phrases))))
 
 (defn render-suffix-tree
