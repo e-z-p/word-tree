@@ -8,20 +8,16 @@
   (map str/trim
        (re-seq #"\(?[^\.\?\!]+[\.!\?]\)?" text)))           ; In backend use "clojure-opennlp" lib to tokenize text into sentences
 
-;       \W+ matches any succession of non-word characters
-
 (defn get-fork
   "Returns the index where two strings diverge."
   [s1 s2]
   (loop [a s1
-         b s2
-         i 0]
+         b s2]
     (if (or (or (empty? a) (empty? b))
             (not= (first a) (first b)))
-      i                                                     ;; get len of matchuptobeginningoflastword of s1[0:i]
+      (- (count s1) (count a))                                            ;; get len of matchuptobeginningoflastword of s1[0:i]
       (recur (rest a)
-             (rest b)
-             (inc i)))))
+             (rest b)))))
 
 (defn get-prefix
   "Gets substring of S from zero up to index I"
@@ -51,17 +47,17 @@
 (defn first-word
   "Gets substring of s up to end of first word."
   [s]
-  (re-find #"[\W+]*\w+" s))
+  (first (re-find #",?\s?\w+(\'[a-z])?|." s)))
 
 (defn get-branch
   "Finds the index of the string whose first word matches the target word."
-  [branches v]
-  (loop [coll branches]
-    (let [b (:text (first coll))]
+  [branches val]
+  (loop [brs branches]
+    (let [text (:text (first brs))]
       (cond
-        (empty? coll) nil
-        (str/starts-with? b v) (- (count branches) (count coll))
-        :else (recur (rest coll))))))
+        (empty? brs) nil
+        (str/starts-with? text val) (- (count branches) (count brs))
+        :else (recur (rest brs))))))
 
 (defn into-tree
   "Adds string, s, to suffix tree, t."
@@ -73,15 +69,15 @@
          suffix-b (get-suffix s fork)]
      (if (empty? suffix-b)
        t
-       (let [i (get-branch branches (first-word suffix-b))]
-         (println "sentence: " s)
-         (println "suffix: " (first-word suffix-b))
-         (println "branches: " branches)
-         (println "path: " i)
+       (let [path (get-branch branches (first-word suffix-b))]
          (suffix-tree prefix
-                      (remove nil? (flatten [(when suffix-a (suffix-tree suffix-a))
-                                             (if i [(into-tree suffix-b (nth branches i)) (vec-remove branches i)]
-                                                   [(suffix-tree suffix-b) branches])]))))))))
+                      (remove nil? (flatten [(when suffix-a (suffix-tree suffix-a branches))
+                                             (if path [(into-tree suffix-b (nth branches path)) (vec-remove branches path)]
+                                                      [(suffix-tree suffix-b)])]))))))))
+;(print "tree: ")
+;(pp/pprint t)
+;(println "suffix: " suffix-b)
+;(println "path: " path)
 
 (defn re-each-match-to-eos
   "Get position of regex match."
@@ -102,11 +98,10 @@
   [text pre]
   (let [sentences (sentence-split text)
         phrases (get-phrases sentences pre)]
-    (reduce (fn [t s] (pp/pprint t) (into-tree s t))
-            (suffix-tree pre) phrases)))
+    (reduce #(into-tree %2 %1) (suffix-tree (first phrases)) (rest phrases))))
 
-(defn render-tree
+(defn render-suffix-tree
   "Renders a suffix tree as html."
   [t]
   (let [{text :text, branches :branches} t]
-    ^{:key (gensym)} [:ul {:class "suffix-tree"} text (map render-tree branches)]))
+    ^{:key (gensym)} [:ul {:class "suffix-tree"} text (map render-suffix-tree branches)]))
