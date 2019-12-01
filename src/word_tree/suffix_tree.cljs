@@ -90,7 +90,7 @@
 
 (defn get-phrases
   [sentences prefix]
-  (let [re (re-pattern (str "\\b" prefix "\\b"))]
+  (let [re (re-pattern (str "(?<![\\'\\w\\d])" prefix "(?![\\w\\d\\'])"))]
     (remove nil? (mapcat #(re-each-match-to-eos re %) sentences))))
 
 (defn gen-suffix-tree

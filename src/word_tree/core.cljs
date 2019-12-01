@@ -7,7 +7,7 @@
 ;; -------------------------
 ;; Views
 
-(def sentences "Let's go to the movies. Let me go.")
+(def sentences "Let's go to the movies. Let me go. 'hiya. hiya. 'hi.")
 ; TODO:
 ; 1. change `sentences`                   [x]
 ; 2. merge with `--squash`                [ ]
@@ -19,7 +19,9 @@
            :value     @value
            :on-change #(reset! value (-> % .-target .-value))}]) ; where '%' is the event object
 ; TODO:
-; drop down suggestions as you begin typing or "no word beginning with '<search-term>' exists in this corpus."
+; drop down suggestions as you begin typing or "no word beginning with '<search-term>' exists in this corpus."'
+; highlight root of word-tree
+; decrease font-size as depth increases
 
 (defn atom-textarea [value]
   [:textarea {:styles    {:font-size ".7"}
