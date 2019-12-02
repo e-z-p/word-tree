@@ -2,9 +2,9 @@
   (:require
     [reagent.core :as r]))
 
-(defonce suggestions-list (r/atom []))
-(defonce active-suggestion (r/atom 0))
-(defonce show-suggestions? (r/atom false))
+(defonce ^:private suggestions-list (r/atom []))
+(defonce ^:private active-suggestion (r/atom 0))
+(defonce ^:private show-suggestions? (r/atom false))
 (defn atom-search-bar
   [value text]
   (let [get-suggestions #(let [pattern (re-pattern (str "(?<![\\'\\w\\d])" @value "[\\w\\']*"))]
