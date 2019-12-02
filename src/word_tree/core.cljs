@@ -3,10 +3,14 @@
     [reagent.core :as r]
     [word-tree.suffix-tree :as sfx]
     [clojure.string :as str]
-    [clojure.pprint :as pp]))
+    [clojure.pprint :as pp]
+    [component.search-bar]))
 
 ;; -------------------------
 ;; Views
+
+;; (def war-and-peace-url "http://www.gutenberg.org/files/2600/2600-0.txt")
+;; (def war-and-peace-corpus (slurp war-and-peace))
 
 (def sentences "Let's go to the movies. Let me go. 'hiya. hiya. 'hi.")
 ; TODO:
@@ -33,50 +37,51 @@
 ; highlight root of word-tree
 ; decrease font-size as depth increases
 ; (-> event .-target .-dataset .-index) to access key :data-index
+(defonce suggestions-list (r/atom []))
+(defonce active-suggestion (r/atom 0))
+(defonce show-suggestions? (r/atom false))
 (defn atom-search-bar
   [value text]
-  (let [suggestions-list (r/atom [])
-        active-suggestion (r/atom 0)
-        show-suggestions? (r/atom false)
-        get-suggestions #(let [pattern (re-pattern (str "(?<!\\w)" @value "[\\w\\']*"))]
-                           (distinct (re-seq pattern @text)))
-        on-input-change #(do (reset! suggestions-list (get-suggestions))
-                             (reset! active-suggestion 0)
+  (let [get-suggestions #(let [pattern (re-pattern (str "(?<!\\w)" @value "[\\w\\']*"))]
+                           (remove empty? (distinct (re-seq pattern @text))))
+        on-input-change #(do (reset! active-suggestion 0)
                              (reset! show-suggestions? true)
                              (reset! value (-> % .-target .-value))
-                             ;(println (str "show-suggestions? = " @show-suggestions?))
-                             ;(println (str "suggestions-list = " @suggestions-list))
-                             ;(println (str "active-suggestion = " @active-suggestion))
-                             )
+                             (if (empty? @value)
+                               (do (reset! suggestions-list [])
+                                   (reset! show-suggestions? false))
+                               (reset! suggestions-list (get-suggestions))))
         on-input-key-down (fn [event]
                            (let [keycode (-> event .-keyCode)]
                              (case keycode
-                               13 (do (reset! value (nth suggestions-list active-suggestion))
+                               13 (do (reset! value (nth @suggestions-list @active-suggestion)) ; enter
                                       (reset! show-suggestions? false)
                                       (reset! suggestions-list [])
                                       (reset! active-suggestion 0))
-                               38 (swap! active-suggestion #(mod (dec %) (count @suggestions-list)))
-                               40 (swap! active-suggestion #(mod (inc %) (count @suggestions-list)))
+                               27 (do (reset! show-suggestions? false) ; escape
+                                      (reset! suggestions-list [])
+                                      (reset! active-suggestion 0))
+                               38 (when (pos? (count @suggestions-list)) (swap! active-suggestion #(mod (dec %) (count @suggestions-list))))
+                               40 (when (pos? (count @suggestions-list)) (swap! active-suggestion #(mod (inc %) (count @suggestions-list))))
                                nil)))
         on-suggestion-click #(do (reset! value (nth suggestions-list active-suggestion))
                                  (reset! show-suggestions? false)
                                  (reset! suggestions-list [])
                                  (reset! active-suggestion 0))
         render-suggestion (fn [i s] ^{:key (gensym)}
-                            [:li {:class (str "suggestion" (when (= active-suggestion i) "-current"))
-                                  :on-click on-suggestion-click} s])]
-    [:<>
-     [:input {:type "text"
-              :class "search-input"
-              :value @value
-              :on-change on-input-change
-              :on-key-down on-input-key-down}]
-     (println "show-suggestions?: " @show-suggestions?)
-     (println "suggestions-list empty?: " (empty? @suggestions-list))
-     (if (and @show-suggestions? (not (empty? @suggestions-list)))
-       [:ul {:class "suggestions-list"}
-        (map-indexed render-suggestion @suggestions-list)]
-       [:div (str "There are no words beginning with '" @value "' in this corpus.")])]))
+                            [:li.suggestion {:class (str "suggestion" (when (= @active-suggestion i) "-active"))
+                                             :style {:display (if (= @value s) "none" "")}
+                                             :on-click on-suggestion-click} s])]
+    [:div
+     [:input.search-bar {:type "text"
+                         :value @value
+                         :on-change on-input-change
+                         :on-key-down on-input-key-down}]
+     (when @show-suggestions?
+      (if (not (empty? @suggestions-list))
+       [:ul.suggestions-list
+        (doall (map-indexed render-suggestion @suggestions-list))]
+       [:div.no-suggestions (str "There are no words beginning with '" @value "' in this corpus.")]))]))
 
 (defn home-page []
   (let [search-term (r/atom "")
