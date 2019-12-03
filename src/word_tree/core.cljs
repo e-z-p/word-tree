@@ -2,7 +2,8 @@
   (:require
     [reagent.core :as r]
     [word-tree.suffix-tree :as sfx]
-    [word-tree.component.search-bar :as sb]))
+    [word-tree.component.search-bar :as sb]
+    [word-tree.component.corpus-select :as cs]))
 
 ;; -------------------------
 ;; Views
@@ -22,6 +23,7 @@
   (fn []
     [:div
      [:strong "Search term: "] [sb/atom-search-bar search-term corpus]
+     [cs/atom-select corpus]
      (if (empty? @search-term)
        [:div @corpus]
        (sfx/render-suffix-tree (sfx/gen-suffix-tree @corpus @search-term)))]))
