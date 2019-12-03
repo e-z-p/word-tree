@@ -53,7 +53,8 @@
                            {:class class :key (gensym) :value title :data-url link}
                            inner-text]))]
     [:<>
-     [:label.selector-label "Select text to search: "]
+     [:strong.choose-corpus-label "Text: "]
      [:select.corpora-selection
-      {:on-change on-select-change}
+      {:default-value "Select a text"
+       :on-change on-select-change}
       [:optgroup {:label "Corpora"} (doall (map-indexed render-option books))]]]))

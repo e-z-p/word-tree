@@ -30,13 +30,14 @@
                                   38 (when (pos? (count @suggestions-list)) (swap! active-suggestion #(mod (dec %) (count @suggestions-list)))) ; up
                                   40 (when (pos? (count @suggestions-list)) (swap! active-suggestion #(mod (inc %) (count @suggestions-list)))) ; down
                                   nil))))
-        on-suggestion-click #(do (reset! value (nth suggestions-list active-suggestion))
+        on-suggestion-click #(do (reset! value (nth @suggestions-list (-> % .-target .-dataset .-index js/parseInt)))
                                  (reset! show-suggestions? false)
                                  (reset! suggestions-list [])
                                  (reset! active-suggestion 0))
         render-suggestion (fn [i s] ^{:key (gensym)}
                             [:li.suggestion {:class    (str "suggestion" (when (= @active-suggestion i) "-active"))
                                              :style    {:display (if (= @value s) "none" "")}
+                                             :data-index i
                                              :on-click on-suggestion-click} s])]
     [:div
      [:input.search-bar {:type        "text"
